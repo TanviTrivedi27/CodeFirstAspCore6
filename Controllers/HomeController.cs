@@ -1,21 +1,124 @@
 ﻿using CodeFirstAspCore6.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace CodeFirstAspCore6.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly StudentDBContext studentDB;
 
-        public HomeController(ILogger<HomeController> logger)
+        //private readonly ILogger<HomeController> _logger;
+
+        //public HomeController(ILogger<HomeController> logger)
+        //{
+        //    _logger = logger;
+        //}
+
+        public HomeController(StudentDBContext studentDB)
         {
-            _logger = logger;
+            this.studentDB = studentDB;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
+        {
+            var stdData = await studentDB.Students.ToListAsync();
+            return View(stdData);
+        }
+
+        public IActionResult Create()
         {
             return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Student std)
+        {
+            if(ModelState.IsValid)
+            {
+                await studentDB.Students.AddAsync(std);
+                await studentDB.SaveChangesAsync();
+                TempData["insert_success"] = "data inserted...";
+                return RedirectToAction("Index","Home");
+            }
+            return View(std);
+        }
+
+        public async Task<IActionResult> Details(int? id)
+        {
+            if(id == null || studentDB.Students == null)
+            {
+                return NotFound();
+            }
+            var stdData = await studentDB.Students.FirstOrDefaultAsync(x => x.Id == id);    
+            if(stdData == null)
+            {
+                return NotFound();
+            }
+            return View(stdData);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            if (id == null || studentDB.Students == null)
+            {
+                return NotFound();
+            }
+            var stdData = await studentDB.Students.FindAsync(id);
+            if (stdData == null)
+            {
+                return NotFound();
+            }
+            return View(stdData);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int? id,Student std)
+        {
+            if(id != std.Id)
+            {
+                return NotFound();
+            }
+            if (ModelState.IsValid)
+            {
+                studentDB.Students.Update(std);
+                await studentDB.SaveChangesAsync();
+                TempData["update_success"] = "data Updated...";
+                return RedirectToAction("Index", "Home");
+            }
+            return View(std);
+        }
+
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null || studentDB.Students == null)
+            {
+                return NotFound();
+            }
+            var stdData = await studentDB.Students.FirstOrDefaultAsync(x => x.Id == id);
+            if (stdData == null)
+            {
+                return NotFound();
+            }
+            return View(stdData);
+        }
+
+        [HttpPost,ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult>DeleteConfirmed(int? id)
+        {
+            var stdData = await studentDB.Students.FindAsync(id);
+            if(stdData != null)
+            { 
+                studentDB.Students.Remove(stdData);
+
+            }
+            await studentDB.SaveChangesAsync();
+            TempData["delete_success"] = "data Deleted...";
+            return RedirectToAction("Index", "Home");
         }
 
         public IActionResult Privacy()
